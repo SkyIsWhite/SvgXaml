@@ -1,142 +1,98 @@
 ﻿using System;
 
-namespace SharpVectors.Converters
+namespace SharpVectors.Converters;
+
+public sealed class ConsoleWriter
 {
-    public sealed class ConsoleWriter
+    public ConsoleWriter()
+        : this(false, ConsoleWriterVerbosity.Normal)
     {
-        private bool _isQuiet;
-        private object _synchObject;
-        private ConsoleWriterVerbosity _verbosity;
+    }
 
-        public ConsoleWriter()
-            : this(false, ConsoleWriterVerbosity.Normal)
-        {   
-        }
+    public ConsoleWriter(bool isQuiet, ConsoleWriterVerbosity verbosity)
+    {
+        IsQuiet = isQuiet;
+        Verbosity = verbosity;
 
-        public ConsoleWriter(bool isQuiet, ConsoleWriterVerbosity verbosity)
+        SynchObject = new object();
+    }
+
+    public bool IsQuiet { get; }
+
+    public object SynchObject { get; }
+
+    public ConsoleWriterVerbosity Verbosity { get; }
+
+    public void WriteLine()
+    {
+        if (IsQuiet) return;
+
+        lock (SynchObject)
         {
-            _isQuiet   = isQuiet;
-            _verbosity = verbosity;
-
-            _synchObject = new object();
+            Console.WriteLine();
         }
+    }
 
-        public bool IsQuiet
+    public void Write(string text)
+    {
+        if (IsQuiet || text == null) return;
+
+        lock (SynchObject)
         {
-            get
-            {
-                return _isQuiet;
-            }
+            Console.Write(text);
         }
+    }
 
-        public object SynchObject
+    public void WriteProgress(string text)
+    {
+        if (IsQuiet || text == null) return;
+
+        lock (SynchObject)
         {
-            get
-            {
-                return _synchObject;
-            }
+            //Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write(text);
+            Console.Write("\b");
+            //Console.ResetColor();
         }
+    }
 
-        public ConsoleWriterVerbosity Verbosity
+    public void WriteLine(string text)
+    {
+        if (IsQuiet || text == null) return;
+
+        lock (SynchObject)
         {
-            get
-            {
-                return _verbosity;
-            }
+            Console.WriteLine(text);
         }
+    }
 
-        public void WriteLine()
+    public void WriteInfoLine(string text)
+    {
+        if (IsQuiet || string.IsNullOrWhiteSpace(text)) return;
+
+        lock (SynchObject)
         {
-            if (_isQuiet)
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.WriteLine();
-            }
+            Console.WriteLine("Info: " + text);
         }
+    }
 
-        public void Write(string text)
+    public void WriteWarnLine(string text)
+    {
+        if (IsQuiet || string.IsNullOrWhiteSpace(text)) return;
+
+        lock (SynchObject)
         {
-            if (_isQuiet || text == null)
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.Write(text);
-            }
+            Console.WriteLine("Warn: " + text);
         }
+    }
 
-        public void WriteProgress(string text)
+    public void WriteErrorLine(string text)
+    {
+        if (IsQuiet || string.IsNullOrWhiteSpace(text)) return;
+
+        lock (SynchObject)
         {
-            if (_isQuiet || text == null)
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                //Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write(text);
-                Console.Write("\b");
-                //Console.ResetColor();
-            }
-        }
-
-        public void WriteLine(string text)
-        {
-            if (_isQuiet || text == null)
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.WriteLine(text);
-            }
-        }
-
-        public void WriteInfoLine(string text)
-        {   
-            if (_isQuiet || string.IsNullOrWhiteSpace(text))
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.WriteLine("Info: " + text);
-            }
-        }
-
-        public void WriteWarnLine(string text)
-        {
-            if (_isQuiet || string.IsNullOrWhiteSpace(text))
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.WriteLine("Warn: " + text);
-            }
-        }
-
-        public void WriteErrorLine(string text)
-        {
-            if (_isQuiet || string.IsNullOrWhiteSpace(text))
-            {
-                return;
-            }
-
-            lock (_synchObject)
-            {
-                Console.WriteLine("Error: " + text);
-            }
+            Console.WriteLine("Error: " + text);
         }
     }
 }

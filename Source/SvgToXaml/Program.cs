@@ -1,56 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Reflection;
-using SvgConverter;
-using SvgToXaml.Infrastructure;
 
-namespace SvgToXaml
+namespace SvgToXaml;
+
+internal static class Program
 {
-    internal static class Program
+    private static readonly Dictionary<string, Assembly> LoadedAsmsCache =
+        new(StringComparer.InvariantCultureIgnoreCase);
+
+    [STAThread]
+    private static int Main(string[] args)
     {
-        [STAThread]
-        private static int Main(string[] args)
+        AppDomain.CurrentDomain.AssemblyResolve += OnResolveAssembly;
+
+        var exitCode = 0;
+        //normale WPF-Applikationslogik
+        var app = new App();
+        app.InitializeComponent();
+        app.Run();
+        return exitCode;
+    }
+
+    private static Assembly OnResolveAssembly(object sender, ResolveEventArgs args)
+    {
+        Assembly cachedAsm;
+        if (LoadedAsmsCache.TryGetValue(args.Name, out cachedAsm))
+            return cachedAsm;
+
+        var executingAssembly = Assembly.GetExecutingAssembly();
+        var assemblyName = new AssemblyName(args.Name);
+
+        var path = assemblyName.Name + ".dll";
+        if (assemblyName.CultureInfo != null && assemblyName.CultureInfo.Equals(CultureInfo.InvariantCulture) == false)
+            path = $@"{assemblyName.CultureInfo}\{path}";
+
+        using (var stream = executingAssembly.GetManifestResourceStream(path))
         {
-            AppDomain.CurrentDomain.AssemblyResolve += OnResolveAssembly;
+            if (stream == null)
+                return null;
 
-            int exitCode = 0;
-            //normale WPF-Applikationslogik
-            var app = new App();
-            app.InitializeComponent();
-            app.Run();
-            return exitCode;
-        }
-
-        private static readonly Dictionary<string, Assembly> LoadedAsmsCache = new Dictionary<string, Assembly>(StringComparer.InvariantCultureIgnoreCase);
-
-        private static Assembly OnResolveAssembly(object sender, ResolveEventArgs args)
-        {
-            Assembly cachedAsm;
-            if (LoadedAsmsCache.TryGetValue(args.Name, out cachedAsm))
-                return cachedAsm;
-
-            Assembly executingAssembly = Assembly.GetExecutingAssembly();
-            AssemblyName assemblyName = new AssemblyName(args.Name);
-
-            string path = assemblyName.Name + ".dll";
-            if (assemblyName.CultureInfo != null && assemblyName.CultureInfo.Equals(CultureInfo.InvariantCulture) == false)
-            {
-                path = $@"{assemblyName.CultureInfo}\{path}";
-            }
-
-            using (Stream stream = executingAssembly.GetManifestResourceStream(path))
-            {
-                if (stream == null)
-                    return null;
-
-                byte[] assemblyRawBytes = new byte[stream.Length];
-                stream.Read(assemblyRawBytes, 0, assemblyRawBytes.Length);
-                var loadedAsm = Assembly.Load(assemblyRawBytes);
-                LoadedAsmsCache.Add(args.Name, loadedAsm);
-                return loadedAsm;
-            }
+            var assemblyRawBytes = new byte[stream.Length];
+            stream.Read(assemblyRawBytes, 0, assemblyRawBytes.Length);
+            var loadedAsm = Assembly.Load(assemblyRawBytes);
+            LoadedAsmsCache.Add(args.Name, loadedAsm);
+            return loadedAsm;
         }
     }
 }

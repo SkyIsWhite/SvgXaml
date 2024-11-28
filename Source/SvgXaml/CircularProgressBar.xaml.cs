@@ -3,211 +3,192 @@
 // By U2UConsult
 
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace SharpVectors.Converters
+namespace SharpVectors.Converters;
+
+/// <summary>
+///     Spinning Busy Indicator Control.
+/// </summary>
+public partial class CircularProgressBar
 {
     /// <summary>
-    /// Spinning Busy Indicator Control.
+    ///     Startup time in milliseconds, default is a second.
     /// </summary>
-    public partial class CircularProgressBar
+    public static readonly DependencyProperty StartupDelayProperty =
+        DependencyProperty.Register(
+            "StartupDelay",
+            typeof(int),
+            typeof(CircularProgressBar),
+            new PropertyMetadata(1000));
+
+    /// <summary>
+    ///     Spinning Speed. Default is 60, that's one rotation per second.
+    /// </summary>
+    public static readonly DependencyProperty RotationsPerMinuteProperty =
+        DependencyProperty.Register(
+            "RotationsPerMinute",
+            typeof(double),
+            typeof(CircularProgressBar),
+            new PropertyMetadata(60.0));
+
+    /// <summary>
+    ///     Timer for the Animation.
+    /// </summary>
+    private readonly DispatcherTimer animationTimer;
+
+    /// <summary>
+    ///     Mouse Cursor.
+    /// </summary>
+    private Cursor originalCursor;
+
+    /// <summary>
+    ///     Initializes a new instance of the CircularProgressBar class.
+    /// </summary>
+    public CircularProgressBar()
     {
-        /// <summary>
-        /// Startup time in milliseconds, default is a second.
-        /// </summary>
-        public static readonly DependencyProperty StartupDelayProperty =
-            DependencyProperty.Register(
-                "StartupDelay",
-                typeof(int),
-                typeof(CircularProgressBar),
-                new PropertyMetadata(1000));
+        InitializeComponent();
 
-        /// <summary>
-        /// Spinning Speed. Default is 60, that's one rotation per second.
-        /// </summary>
-        public static readonly DependencyProperty RotationsPerMinuteProperty =
-            DependencyProperty.Register(
-                "RotationsPerMinute",
-                typeof(double),
-                typeof(CircularProgressBar),
-                new PropertyMetadata(60.0));
+        animationTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher);
+    }
 
-        /// <summary>
-        /// Timer for the Animation.
-        /// </summary>
-        private readonly DispatcherTimer animationTimer;
+    /// <summary>
+    ///     Gets or sets the startup time in miliseconds, default is a second.
+    /// </summary>
+    public int StartupDelay
+    {
+        get => (int)GetValue(StartupDelayProperty);
 
-        /// <summary>
-        /// Mouse Cursor.
-        /// </summary>
-        private Cursor originalCursor;
+        set => SetValue(StartupDelayProperty, value);
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the CircularProgressBar class.
-        /// </summary>
-        public CircularProgressBar()
-        {
-            InitializeComponent();
+    /// <summary>
+    ///     Gets or sets the spinning speed. Default is 60, that's one rotation per second.
+    /// </summary>
+    public double RotationsPerMinute
+    {
+        get => (double)GetValue(RotationsPerMinuteProperty);
 
-            this.animationTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher);
-        }
+        set => SetValue(RotationsPerMinuteProperty, value);
+    }
 
-        /// <summary>
-        /// Gets or sets the startup time in miliseconds, default is a second.
-        /// </summary>
-        public int StartupDelay
-        {
-            get
-            {
-                return (int)this.GetValue(StartupDelayProperty);
-            }
+    /// <summary>
+    ///     Startup Delay.
+    /// </summary>
+    private void StartDelay()
+    {
+        originalCursor = Mouse.OverrideCursor;
+        Mouse.OverrideCursor = Cursors.Wait;
 
-            set
-            {
-                this.SetValue(StartupDelayProperty, value);
-            }
-        }
+        // Startup
+        animationTimer.Interval = new TimeSpan(0, 0, 0, 0, StartupDelay);
+        animationTimer.Tick += StartSpinning;
+        animationTimer.Start();
+    }
 
-        /// <summary>
-        /// Gets or sets the spinning speed. Default is 60, that's one rotation per second.
-        /// </summary>
-        public double RotationsPerMinute
-        {
-            get
-            {
-                return (double)this.GetValue(RotationsPerMinuteProperty);
-            }
+    /// <summary>
+    ///     Start Spinning.
+    /// </summary>
+    /// <param name="sender">Sender of the event.</param>
+    /// <param name="e">Event Arguments.</param>
+    private void StartSpinning(object sender, EventArgs e)
+    {
+        animationTimer.Stop();
+        animationTimer.Tick -= StartSpinning;
 
-            set
-            {
-                this.SetValue(RotationsPerMinuteProperty, value);
-            }
-        }
+        // 60 secs per minute, 1000 millisecs per sec, 10 rotations per full circle:
+        animationTimer.Interval = new TimeSpan(0, 0, 0, 0, (int)(6000 / RotationsPerMinute));
+        animationTimer.Tick += HandleAnimationTick;
+        animationTimer.Start();
+        Opacity = 1;
 
-        /// <summary>
-        /// Startup Delay.
-        /// </summary>
-        private void StartDelay()
-        {
-            this.originalCursor = Mouse.OverrideCursor;
-            Mouse.OverrideCursor = Cursors.Wait;
+        Mouse.OverrideCursor = originalCursor;
+    }
 
-            // Startup
-            this.animationTimer.Interval = new TimeSpan(0, 0, 0, 0, this.StartupDelay);
-            this.animationTimer.Tick += this.StartSpinning;
-            this.animationTimer.Start();
-        }
+    /// <summary>
+    ///     The control became invisible: stop spinning (animation consumes CPU).
+    /// </summary>
+    private void StopSpinning()
+    {
+        animationTimer.Stop();
+        animationTimer.Tick -= HandleAnimationTick;
+        Opacity = 0;
+    }
 
-        /// <summary>
-        /// Start Spinning.
-        /// </summary>
-        /// <param name="sender">Sender of the event.</param>
-        /// <param name="e">Event Arguments.</param>
-        private void StartSpinning(object sender, EventArgs e)
-        {
-            this.animationTimer.Stop();
-            this.animationTimer.Tick -= this.StartSpinning;
+    /// <summary>
+    ///     Apply a single rotation transformation.
+    /// </summary>
+    /// <param name="sender">Sender of the Event: the Animation Timer.</param>
+    /// <param name="e">Event arguments.</param>
+    private void HandleAnimationTick(object sender, EventArgs e)
+    {
+        SpinnerRotate.Angle = (SpinnerRotate.Angle + 36) % 360;
+    }
 
-            // 60 secs per minute, 1000 millisecs per sec, 10 rotations per full circle:
-            this.animationTimer.Interval = new TimeSpan(0, 0, 0, 0, (int)(6000 / this.RotationsPerMinute));
-            this.animationTimer.Tick += this.HandleAnimationTick;
-            this.animationTimer.Start();
-            this.Opacity = 1;
+    /// <summary>
+    ///     Control was loaded: distribute circles.
+    /// </summary>
+    /// <param name="sender">Sender of the Event: I wish I knew.</param>
+    /// <param name="e">Event arguments.</param>
+    private void HandleLoaded(object sender, RoutedEventArgs e)
+    {
+        SetPosition(C0, 0.0);
+        SetPosition(C1, 1.0);
+        SetPosition(C2, 2.0);
+        SetPosition(C3, 3.0);
+        SetPosition(C4, 4.0);
+        SetPosition(C5, 5.0);
+        SetPosition(C6, 6.0);
+        SetPosition(C7, 7.0);
+        SetPosition(C8, 8.0);
+    }
 
-            Mouse.OverrideCursor = originalCursor;
-        }
+    /// <summary>
+    ///     Calculate position of a circle.
+    /// </summary>
+    /// <param name="ellipse">The circle.</param>
+    /// <param name="sequence">Sequence number of the circle.</param>
+    private void SetPosition(Ellipse ellipse, double sequence)
+    {
+        ellipse.SetValue(
+            Canvas.LeftProperty,
+            50.0 + Math.Sin(Math.PI * (0.2 * sequence + 1)) * 50.0);
 
-        /// <summary>
-        /// The control became invisible: stop spinning (animation consumes CPU).
-        /// </summary>
-        private void StopSpinning()
-        {
-            this.animationTimer.Stop();
-            this.animationTimer.Tick -= this.HandleAnimationTick;
-            this.Opacity = 0;
-        }
+        ellipse.SetValue(
+            Canvas.TopProperty,
+            50 + Math.Cos(Math.PI * (0.2 * sequence + 1)) * 50.0);
+    }
 
-        /// <summary>
-        /// Apply a single rotation transformation.
-        /// </summary>
-        /// <param name="sender">Sender of the Event: the Animation Timer.</param>
-        /// <param name="e">Event arguments.</param>
-        private void HandleAnimationTick(object sender, EventArgs e)
-        {
-            this.SpinnerRotate.Angle = (this.SpinnerRotate.Angle + 36) % 360;
-        }
+    /// <summary>
+    ///     Control was unloaded: stop spinning.
+    /// </summary>
+    /// <param name="sender">Sender of the event.</param>
+    /// <param name="e">Event arguments.</param>
+    private void HandleUnloaded(object sender, RoutedEventArgs e)
+    {
+        StopSpinning();
+    }
 
-        /// <summary>
-        /// Control was loaded: distribute circles.
-        /// </summary>
-        /// <param name="sender">Sender of the Event: I wish I knew.</param>
-        /// <param name="e">Event arguments.</param>
-        private void HandleLoaded(object sender, RoutedEventArgs e)
-        {
-            this.SetPosition(C0, 0.0);
-            this.SetPosition(C1, 1.0);
-            this.SetPosition(C2, 2.0);
-            this.SetPosition(C3, 3.0);
-            this.SetPosition(C4, 4.0);
-            this.SetPosition(C5, 5.0);
-            this.SetPosition(C6, 6.0);
-            this.SetPosition(C7, 7.0);
-            this.SetPosition(C8, 8.0);
-        }
+    /// <summary>
+    ///     Visibility property was changed: start or stop spinning.
+    /// </summary>
+    /// <param name="sender">Sender of the event.</param>
+    /// <param name="e">Event arguments.</param>
+    private void HandleVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        // Don't give the developer a headache.
+        if (DesignerProperties.GetIsInDesignMode(this)) return;
 
-        /// <summary>
-        /// Calculate position of a circle.
-        /// </summary>
-        /// <param name="ellipse">The circle.</param>
-        /// <param name="sequence">Sequence number of the circle.</param>
-        private void SetPosition(Ellipse ellipse, double sequence)
-        {
-            ellipse.SetValue(
-                Canvas.LeftProperty,
-                50.0 + (Math.Sin(Math.PI * ((0.2 * sequence) + 1)) * 50.0));
+        var isVisible = (bool)e.NewValue;
 
-            ellipse.SetValue(
-                Canvas.TopProperty,
-                50 + (Math.Cos(Math.PI * ((0.2 * sequence) + 1)) * 50.0));
-        }
-
-        /// <summary>
-        /// Control was unloaded: stop spinning.
-        /// </summary>
-        /// <param name="sender">Sender of the event.</param>
-        /// <param name="e">Event arguments.</param>
-        private void HandleUnloaded(object sender, RoutedEventArgs e)
-        {
-            this.StopSpinning();
-        }
-
-        /// <summary>
-        /// Visibility property was changed: start or stop spinning.
-        /// </summary>
-        /// <param name="sender">Sender of the event.</param>
-        /// <param name="e">Event arguments.</param>
-        private void HandleVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            // Don't give the developer a headache.
-            if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(this))
-            {
-                return;
-            }
-
-            bool isVisible = (bool)e.NewValue;
-
-            if (isVisible)
-            {
-                this.StartDelay();
-            }
-            else
-            {
-                this.StopSpinning();
-            }
-        }
+        if (isVisible)
+            StartDelay();
+        else
+            StopSpinning();
     }
 }

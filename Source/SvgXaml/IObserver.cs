@@ -1,10 +1,7 @@
-﻿using System;
+﻿namespace SharpVectors.Converters;
 
-namespace SharpVectors.Converters
+public interface IObserver
 {
-    public interface IObserver
-    {
-        void OnStarted(IObservable sender);
-        void OnCompleted(IObservable sender, bool isSuccessful);
-    }
+    void OnStarted(IObservable sender);
+    void OnCompleted(IObservable sender, bool isSuccessful);
 }

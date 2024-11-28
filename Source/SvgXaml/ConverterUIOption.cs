@@ -1,12 +1,9 @@
-﻿using System;
+﻿namespace SharpVectors.Converters;
 
-namespace SharpVectors.Converters
+public enum ConverterUIOption
 {
-    public enum ConverterUIOption
-    {
-        Unknown = 0,
-        None    = 1,
-        Console = 2,
-        Windows = 3
-    }
+    Unknown = 0,
+    None = 1,
+    Console = 2,
+    Windows = 3
 }

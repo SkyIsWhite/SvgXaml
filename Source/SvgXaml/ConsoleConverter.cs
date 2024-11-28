@@ -1,64 +1,34 @@
-﻿using System;
+﻿namespace SharpVectors.Converters;
 
-namespace SharpVectors.Converters
+public abstract class ConsoleConverter : IObservable
 {
-    public abstract class ConsoleConverter : IObservable
-    {
-        #region Private Fields
+    #region Public Methods
 
-        private string _outputDir;
-        private ConverterOptions _options;
+    public abstract bool Convert(ConsoleWriter writer);
 
-        #endregion
+    #endregion
 
-        #region Constructors and Destructor
+    #region Private Fields
 
-        protected ConsoleConverter()
-        {
-        }
+    #endregion
 
-        #endregion
+    #region Constructors and Destructor
 
-        #region Public Propeties
+    #endregion
 
-        public string OutputDir
-        {
-            get
-            {
-                return _outputDir;
-            }
-            set
-            {
-                _outputDir = value;
-            }
-        }
+    #region Public Propeties
 
-        public ConverterOptions Options
-        {
-            get
-            {
-                return _options;
-            }
-            set
-            {
-                _options = value;
-            }
-        }
+    public string OutputDir { get; set; }
 
-        #endregion
+    public ConverterOptions Options { get; set; }
 
-        #region Public Methods
+    #endregion
 
-        public abstract bool Convert(ConsoleWriter writer);
+    #region IObservable Members
 
-        #endregion
+    public abstract void Cancel();
 
-        #region IObservable Members
+    public abstract void Subscribe(IObserver observer);
 
-        public abstract void Cancel();
-
-        public abstract void Subscribe(IObserver observer);
-
-        #endregion
-    }
+    #endregion
 }

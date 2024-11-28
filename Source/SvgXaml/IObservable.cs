@@ -1,10 +1,7 @@
-﻿using System;
+﻿namespace SharpVectors.Converters;
 
-namespace SharpVectors.Converters
+public interface IObservable
 {
-    public interface IObservable
-    {
-        void Cancel();
-        void Subscribe(IObserver observer);
-    }
+    void Cancel();
+    void Subscribe(IObserver observer);
 }

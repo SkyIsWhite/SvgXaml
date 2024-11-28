@@ -1,466 +1,357 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Diagnostics;
-using System.ComponentModel;
-using System.Collections.Generic;
-
-using System.Windows.Media;
-
 using SharpVectors.Renderers.Wpf;
 
-namespace SharpVectors.Converters
+namespace SharpVectors.Converters;
+
+public sealed class ConsoleFilesConverter : ConsoleConverter
 {
-    public sealed class ConsoleFilesConverter : ConsoleConverter
+    #region Constructors and Destructor
+
+    public ConsoleFilesConverter(IList<string> sourceFiles)
     {
-        #region Private Fields
+        SourceFiles = sourceFiles;
 
-        private int _convertedCount;
-        private bool _continueOnError;
+        _wpfSettings = new WpfDrawingSettings();
+        _wpfSettings.CultureInfo = _wpfSettings.NeutralCultureInfo;
 
-        private bool _writerErrorOccurred;
-        private bool _fallbackOnWriterError;
+        _fileReader = new FileSvgReader(_wpfSettings);
+        _fileReader.SaveXaml = false;
+        _fileReader.SaveZaml = false;
 
-        private List<string> _errorFiles;
+        _worker = new ConsoleWorker();
+        //_worker.WorkerReportsProgress = true;
+        //_worker.WorkerSupportsCancellation = true;
 
-        /// <summary>
-        /// Only one observer is expected!
-        /// </summary>
-        private IObserver _observer;
+        _worker.DoWork += OnWorkerDoWork;
+        _worker.RunWorkerCompleted += OnWorkerCompleted;
+        _worker.ProgressChanged += OnWorkerProgressChanged;
 
-        private IList<string> _sourceFiles;
-        private DirectoryInfo _outputInfoDir;
+        ContinueOnError = true;
+    }
 
-        private FileSvgReader _fileReader;
-        private WpfDrawingSettings _wpfSettings;
+    #endregion
 
-        private ConsoleWorker _worker;
-        private ConsoleWriter _writer;
+    #region Public Methods
 
-        #endregion
+    public override bool Convert(ConsoleWriter writer)
+    {
+        Debug.Assert(writer != null);
 
-        #region Constructors and Destructor
+        Debug.Assert(SourceFiles != null && SourceFiles.Count != 0);
+        if (SourceFiles == null || SourceFiles.Count == 0) return false;
 
-        public ConsoleFilesConverter(IList<string> sourceFiles)
+        _writer = writer;
+
+        _errorFiles = new List<string>();
+
+        try
         {
-            _sourceFiles = sourceFiles;
+            AppendLine(string.Empty);
+            AppendLine("Converting files, please wait...");
 
-            _wpfSettings = new WpfDrawingSettings();
-            _wpfSettings.CultureInfo = _wpfSettings.NeutralCultureInfo;
+            var outputDir = OutputDir;
+            Debug.Assert(SourceFiles != null && SourceFiles.Count != 0);
+            if (SourceFiles == null || SourceFiles.Count == 0) return false;
+            if (!string.IsNullOrWhiteSpace(outputDir))
+            {
+                _outputInfoDir = new DirectoryInfo(outputDir);
+                if (!_outputInfoDir.Exists) _outputInfoDir.Create();
+            }
 
-            _fileReader = new FileSvgReader(_wpfSettings);
-            _fileReader.SaveXaml = false;
-            _fileReader.SaveZaml = false;
+            AppendLine("Input Files:");
+            for (var i = 0; i < SourceFiles.Count; i++) AppendLine(SourceFiles[i]);
+            AppendLine(string.Empty);
 
-            _worker = new ConsoleWorker();
-            //_worker.WorkerReportsProgress = true;
-            //_worker.WorkerSupportsCancellation = true;
+            _worker.RunWorkerAsync();
 
-            _worker.DoWork += new DoWorkEventHandler(OnWorkerDoWork);
-            _worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(OnWorkerCompleted);
-            _worker.ProgressChanged += new ProgressChangedEventHandler(OnWorkerProgressChanged);
+            if (_observer != null) _observer.OnStarted(this);
 
-            _continueOnError = true;
+            return true;
         }
-
-        #endregion
-
-        #region Public Properties
-
-        public IList<string> SourceFiles
+        catch (Exception ex)
         {
-            get
-            {
-                return _sourceFiles;
-            }
-            set
-            {
-                _sourceFiles = value;
-            }
+            var builder = new StringBuilder();
+            builder.AppendFormat("Error: Exception ({0})", ex.GetType());
+            builder.AppendLine();
+            builder.AppendLine(ex.Message);
+
+            AppendText(builder.ToString());
+
+            return false;
         }
+    }
 
-        public bool ContinueOnError
+    #endregion
+
+    #region Private Fields
+
+    private int _convertedCount;
+
+    private List<string> _errorFiles;
+
+    /// <summary>
+    ///     Only one observer is expected!
+    /// </summary>
+    private IObserver _observer;
+
+    private DirectoryInfo _outputInfoDir;
+
+    private readonly FileSvgReader _fileReader;
+    private readonly WpfDrawingSettings _wpfSettings;
+
+    private readonly ConsoleWorker _worker;
+    private ConsoleWriter _writer;
+
+    #endregion
+
+    #region Public Properties
+
+    public IList<string> SourceFiles { get; set; }
+
+    public bool ContinueOnError { get; set; }
+
+    /// <summary>
+    ///     Gets a value indicating whether a writer error occurred when
+    ///     using the custom XAML writer.
+    /// </summary>
+    /// <value>
+    ///     This is <see langword="true" /> if an error occurred when using
+    ///     the custom XAML writer; otherwise, it is <see langword="false" />.
+    /// </value>
+    public bool WriterErrorOccurred { get; private set; }
+
+    /// <summary>
+    ///     Gets or sets a value indicating whether to fall back and use
+    ///     the .NET Framework XAML writer when an error occurred in using the
+    ///     custom writer.
+    /// </summary>
+    /// <value>
+    ///     This is <see langword="true" /> if the converter falls back to using
+    ///     the system XAML writer when an error occurred in using the custom
+    ///     writer; otherwise, it is <see langword="false" />. If <see langword="false" />,
+    ///     an exception, which occurred in using the custom writer will be
+    ///     thrown. The default is <see langword="false" />.
+    /// </value>
+    public bool FallbackOnWriterError { get; set; }
+
+    #endregion
+
+    #region Private Event Handlers
+
+    #region ConsoleWorker Methods
+
+    private void OnWorkerProgressChanged(object sender, ProgressChangedEventArgs e)
+    {
+        if (e.UserState != null) AppendLine(e.UserState.ToString());
+    }
+
+    private void OnWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    {
+        var builder = new StringBuilder();
+        if (e.Error != null)
         {
-            get
+            var ex = e.Error;
+
+            if (ex != null)
             {
-                return _continueOnError;
-            }
-            set
-            {
-                _continueOnError = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether a writer error occurred when
-        /// using the custom XAML writer.
-        /// </summary>
-        /// <value>
-        /// This is <see langword="true"/> if an error occurred when using
-        /// the custom XAML writer; otherwise, it is <see langword="false"/>.
-        /// </value>
-        public bool WriterErrorOccurred
-        {
-            get
-            {
-                return _writerErrorOccurred;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to fall back and use
-        /// the .NET Framework XAML writer when an error occurred in using the
-        /// custom writer.
-        /// </summary>
-        /// <value>
-        /// This is <see langword="true"/> if the converter falls back to using
-        /// the system XAML writer when an error occurred in using the custom
-        /// writer; otherwise, it is <see langword="false"/>. If <see langword="false"/>,
-        /// an exception, which occurred in using the custom writer will be
-        /// thrown. The default is <see langword="false"/>. 
-        /// </value>
-        public bool FallbackOnWriterError
-        {
-            get
-            {
-                return _fallbackOnWriterError;
-            }
-            set
-            {
-                _fallbackOnWriterError = value;
-            }
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public override bool Convert(ConsoleWriter writer)
-        {
-            Debug.Assert(writer != null);
-
-            Debug.Assert(_sourceFiles != null && _sourceFiles.Count != 0);
-            if (_sourceFiles == null || _sourceFiles.Count == 0)
-            {
-                return false;
-            }
-
-            _writer = writer;
-
-            _errorFiles = new List<string>();
-
-            try
-            {
-                this.AppendLine(string.Empty);
-                this.AppendLine("Converting files, please wait...");
-
-                string outputDir = this.OutputDir;
-                Debug.Assert(_sourceFiles != null && _sourceFiles.Count != 0);
-                if (_sourceFiles == null || _sourceFiles.Count == 0)
-                {
-                    return false;
-                }
-                if (!string.IsNullOrWhiteSpace(outputDir))
-                {
-                    _outputInfoDir = new DirectoryInfo(outputDir);
-                    if (!_outputInfoDir.Exists)
-                    {
-                        _outputInfoDir.Create();
-                    }
-                }
-
-                this.AppendLine("Input Files:");
-                for (int i = 0; i < _sourceFiles.Count; i++)
-                {
-                    this.AppendLine(_sourceFiles[i]);
-                }
-                this.AppendLine(string.Empty);
-
-                _worker.RunWorkerAsync();
-
-                if (_observer != null)
-                {
-                    _observer.OnStarted(this);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                StringBuilder builder = new StringBuilder();
                 builder.AppendFormat("Error: Exception ({0})", ex.GetType());
                 builder.AppendLine();
                 builder.AppendLine(ex.Message);
-
-                this.AppendText(builder.ToString());
-
-                return false;
-            }
-        }
-
-        #endregion
-
-        #region Private Event Handlers
-
-        #region ConsoleWorker Methods
-
-        private void OnWorkerProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            if (e.UserState != null)
-            {
-                this.AppendLine(e.UserState.ToString());
-            }
-        }
-
-        private void OnWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            StringBuilder builder = new StringBuilder();
-            if (e.Error != null)
-            {
-                Exception ex = e.Error;
-
-                if (ex != null)
-                {
-                    builder.AppendFormat("Error: Exception ({0})", ex.GetType());
-                    builder.AppendLine();
-                    builder.AppendLine(ex.Message);
-                    builder.AppendLine(ex.ToString());
-                }
-                else
-                {
-                    builder.AppendFormat("Error: Unknown");
-                }
-
-                if (_observer != null)
-                {
-                    _observer.OnCompleted(this, false);
-                }
-            }
-            else if (e.Cancelled)
-            {
-                builder.AppendLine("Result: Cancelled");
-
-                if (_observer != null)
-                {
-                    _observer.OnCompleted(this, false);
-                }
-            }
-            else if (e.Result != null)
-            {
-                string resultText = e.Result.ToString();
-                bool isSuccessful = !string.IsNullOrWhiteSpace(resultText) &&
-                    string.Equals(resultText, "Successful", StringComparison.OrdinalIgnoreCase);
-
-                if (_errorFiles == null || _errorFiles.Count == 0)
-                {
-                    builder.AppendLine("Total number of files converted: " + _convertedCount);
-                }
-                else
-                {
-                    builder.AppendLine("Total number of files successful converted: " + _convertedCount);
-                    builder.AppendLine("Total number of files failed: " + _errorFiles.Count);
-                }
-                if (!string.IsNullOrWhiteSpace(resultText))
-                {
-                    builder.AppendLine("Result: " + resultText);
-                }
-
-                string outputDir = this.OutputDir;
-                if (!string.IsNullOrWhiteSpace(outputDir))
-                {
-                    builder.AppendLine("Output Directory: " + outputDir);
-                }
-
-                if (_observer != null)
-                {
-                    _observer.OnCompleted(this, isSuccessful);
-                }
-            }
-
-            this.AppendLine(builder.ToString());
-        }
-
-        private void OnWorkerDoWork(object sender, DoWorkEventArgs e)
-        {
-            ConsoleWorker worker = (ConsoleWorker)sender;
-
-            ConverterOptions options   = this.Options;
-
-            _wpfSettings.IncludeRuntime = options.IncludeRuntime;
-            _wpfSettings.TextAsGeometry = options.TextAsGeometry;
-
-            _fileReader.UseFrameXamlWriter = !options.UseCustomXamlWriter;
-
-            if (options.GeneralWpf)
-            {
-                _fileReader.SaveXaml = options.SaveXaml;
-                _fileReader.SaveZaml = options.SaveZaml;
+                builder.AppendLine(ex.ToString());
             }
             else
             {
-                _fileReader.SaveXaml = false;
-                _fileReader.SaveZaml = false;
+                builder.AppendFormat("Error: Unknown");
             }
 
-            this.ConvertFiles(e, _outputInfoDir);
+            if (_observer != null) _observer.OnCompleted(this, false);
+        }
+        else if (e.Cancelled)
+        {
+            builder.AppendLine("Result: Cancelled");
 
-            if (!e.Cancel)
+            if (_observer != null) _observer.OnCompleted(this, false);
+        }
+        else if (e.Result != null)
+        {
+            var resultText = e.Result.ToString();
+            var isSuccessful = !string.IsNullOrWhiteSpace(resultText) &&
+                               string.Equals(resultText, "Successful", StringComparison.OrdinalIgnoreCase);
+
+            if (_errorFiles == null || _errorFiles.Count == 0)
             {
-                e.Result = "Successful";
+                builder.AppendLine("Total number of files converted: " + _convertedCount);
             }
+            else
+            {
+                builder.AppendLine("Total number of files successful converted: " + _convertedCount);
+                builder.AppendLine("Total number of files failed: " + _errorFiles.Count);
+            }
+
+            if (!string.IsNullOrWhiteSpace(resultText)) builder.AppendLine("Result: " + resultText);
+
+            var outputDir = OutputDir;
+            if (!string.IsNullOrWhiteSpace(outputDir)) builder.AppendLine("Output Directory: " + outputDir);
+
+            if (_observer != null) _observer.OnCompleted(this, isSuccessful);
         }
 
-        #endregion
+        AppendLine(builder.ToString());
+    }
 
-        #endregion
+    private void OnWorkerDoWork(object sender, DoWorkEventArgs e)
+    {
+        var worker = (ConsoleWorker)sender;
 
-        #region Private Methods
+        var options = Options;
 
-        private void AppendText(string text)
+        _wpfSettings.IncludeRuntime = options.IncludeRuntime;
+        _wpfSettings.TextAsGeometry = options.TextAsGeometry;
+
+        _fileReader.UseFrameXamlWriter = !options.UseCustomXamlWriter;
+
+        if (options.GeneralWpf)
         {
-            if (text == null)
-            {
-                return;
-            }
-
-            _writer.Write(text);
+            _fileReader.SaveXaml = options.SaveXaml;
+            _fileReader.SaveZaml = options.SaveZaml;
+        }
+        else
+        {
+            _fileReader.SaveXaml = false;
+            _fileReader.SaveZaml = false;
         }
 
-        private void AppendLine(string text)
-        {
-            if (text == null)
-            {
-                return;
-            }
+        ConvertFiles(e, _outputInfoDir);
 
-            _writer.WriteLine(text);
+        if (!e.Cancel) e.Result = "Successful";
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Private Methods
+
+    private void AppendText(string text)
+    {
+        if (text == null) return;
+
+        _writer.Write(text);
+    }
+
+    private void AppendLine(string text)
+    {
+        if (text == null) return;
+
+        _writer.WriteLine(text);
+    }
+
+    private void ConvertFiles(DoWorkEventArgs e, DirectoryInfo target)
+    {
+        _fileReader.FallbackOnWriterError = FallbackOnWriterError;
+
+        if (e.Cancel) return;
+
+        if (_worker.CancellationPending)
+        {
+            e.Cancel = true;
+            return;
         }
 
-        private void ConvertFiles(DoWorkEventArgs e, DirectoryInfo target)
+        var outputDir = target;
+
+        foreach (var svgFileName in SourceFiles)
         {
-            _fileReader.FallbackOnWriterError = _fallbackOnWriterError;
-
-            if (e.Cancel)
-            {
-                return;
-            }
-
             if (_worker.CancellationPending)
             {
                 e.Cancel = true;
-                return;
+                break;
             }
 
-            DirectoryInfo outputDir = target;
+            var options = Options;
 
-            foreach (string svgFileName in _sourceFiles)
-            {
-                if (_worker.CancellationPending)
+            var fileExt = Path.GetExtension(svgFileName);
+            if (string.Equals(fileExt, ".svg", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(fileExt, ".svgz", StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    e.Cancel = true;
-                    break;
-                }
-
-                ConverterOptions options = this.Options;
-
-                string fileExt = Path.GetExtension(svgFileName);
-                if (string.Equals(fileExt, ".svg", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(fileExt, ".svgz", StringComparison.OrdinalIgnoreCase))
-                {
-                    try
+                    if (_worker.CancellationPending)
                     {
-                        if (_worker.CancellationPending)
-                        {
-                            e.Cancel = true;
-                            break;
-                        }
-
-                        if (target == null)
-                        {
-                            outputDir = new DirectoryInfo(
-                                Path.GetDirectoryName(svgFileName));
-                        }
-
-                        DrawingGroup drawing = _fileReader.Read(svgFileName,
-                            outputDir);
-
-                        if (drawing == null)
-                        {
-                            if (_continueOnError)
-                            {
-                                throw new InvalidOperationException(
-                                    "The conversion failed due to unknown error.");
-                            }
-                        }
-
-                        if (drawing != null && options.GenerateImage)
-                        {
-                            _fileReader.SaveImage(svgFileName, target,
-                                options.EncoderType);
-                        }
-
-                        if (drawing != null)
-                        {
-                            _convertedCount++;
-                        }
-
-                        if (_fileReader.WriterErrorOccurred)
-                        {
-                            _writerErrorOccurred = true;
-                        }
+                        e.Cancel = true;
+                        break;
                     }
-                    catch (Exception ex)
+
+                    if (target == null)
+                        outputDir = new DirectoryInfo(
+                            Path.GetDirectoryName(svgFileName));
+
+                    var drawing = _fileReader.Read(svgFileName,
+                        outputDir);
+
+                    if (drawing == null)
+                        if (ContinueOnError)
+                            throw new InvalidOperationException(
+                                "The conversion failed due to unknown error.");
+
+                    if (drawing != null && options.GenerateImage)
+                        _fileReader.SaveImage(svgFileName, target,
+                            options.EncoderType);
+
+                    if (drawing != null) _convertedCount++;
+
+                    if (_fileReader.WriterErrorOccurred) WriterErrorOccurred = true;
+                }
+                catch (Exception ex)
+                {
+                    _errorFiles.Add(svgFileName);
+
+                    if (ContinueOnError)
                     {
-                        _errorFiles.Add(svgFileName);
+                        var builder = new StringBuilder();
+                        builder.AppendLine("Error converting: " + svgFileName);
+                        builder.AppendFormat("Error: Exception ({0})", ex.GetType());
+                        builder.AppendLine();
+                        builder.AppendLine(ex.Message);
+                        builder.AppendLine(ex.ToString());
 
-                        if (_continueOnError)
-                        {
-                            StringBuilder builder = new StringBuilder();
-                            builder.AppendLine("Error converting: " + svgFileName);
-                            builder.AppendFormat("Error: Exception ({0})", ex.GetType());
-                            builder.AppendLine();
-                            builder.AppendLine(ex.Message);
-                            builder.AppendLine(ex.ToString());
-
-                            _worker.ReportProgress(0, builder.ToString());
-                        }
-                        else
-                        {
-                            throw;
-                        }
+                        _worker.ReportProgress(0, builder.ToString());
+                    }
+                    else
+                    {
+                        throw;
                     }
                 }
-            }
         }
-
-        #endregion
-
-        #region IObservable Members
-
-        public override void Cancel()
-        {
-            if (_worker != null)
-            {
-                if (_worker.IsBusy)
-                {
-                    _worker.CancelAsync();
-
-                    // Wait for the ConsoleWorker to finish the download.
-                    while (_worker.IsBusy)
-                    {
-                        // Keep UI messages moving, so the form remains 
-                        // responsive during the asynchronous operation.
-                        MainApplication.DoEvents();
-                    }
-                }
-            }
-        }
-
-        public override void Subscribe(IObserver observer)
-        {
-            _observer = observer;
-        }
-
-        #endregion
     }
+
+    #endregion
+
+    #region IObservable Members
+
+    public override void Cancel()
+    {
+        if (_worker != null)
+            if (_worker.IsBusy)
+            {
+                _worker.CancelAsync();
+
+                // Wait for the ConsoleWorker to finish the download.
+                while (_worker.IsBusy)
+                    // Keep UI messages moving, so the form remains 
+                    // responsive during the asynchronous operation.
+                    MainApplication.DoEvents();
+            }
+    }
+
+    public override void Subscribe(IObserver observer)
+    {
+        _observer = observer;
+    }
+
+    #endregion
 }

@@ -1,27 +1,25 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace SharpVectors.Converters
+namespace SharpVectors.Converters;
+
+/// <summary>
+///     Interaction logic for StartPage.xaml
+/// </summary>
+public partial class StartPage : Page
 {
-    /// <summary>
-    /// Interaction logic for StartPage.xaml
-    /// </summary>
-    public partial class StartPage : Page
+    public StartPage()
     {
-        public StartPage()
-        {
-            InitializeComponent();
+        InitializeComponent();
 
-            // Reset the dimensions...
-            this.Width  = Double.NaN;
-            this.Height = Double.NaN;
+        // Reset the dimensions...
+        Width = double.NaN;
+        Height = double.NaN;
 
-            this.Loaded += OnStartPageLoaded;
-        }
+        Loaded += OnStartPageLoaded;
+    }
 
-        private void OnStartPageLoaded(object sender, RoutedEventArgs e)
-        {
-        }
+    private void OnStartPageLoaded(object sender, RoutedEventArgs e)
+    {
     }
 }
