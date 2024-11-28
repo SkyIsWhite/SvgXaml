@@ -39,6 +39,7 @@ namespace SharpVectors.Converters
         /// Only one observer is expected!
         /// </summary>
         private IObserver _observer;
+
         private ConverterOptions _options;
 
         private string _sourceDir;
@@ -51,7 +52,7 @@ namespace SharpVectors.Converters
 
         private BackgroundWorker _worker;
 
-        #endregion
+        #endregion Private Fields
 
         #region Constructors and Destructor
 
@@ -79,46 +80,54 @@ namespace SharpVectors.Converters
             _continueOnError = true;
         }
 
-        #endregion
+        #endregion Constructors and Destructor
 
         #region Public Properties
 
         public ConverterOptions Options
         {
-            get {
+            get
+            {
                 return _options;
             }
-            set {
+            set
+            {
                 _options = value;
             }
         }
 
         public string SourceDir
         {
-            get {
+            get
+            {
                 return _sourceDir;
             }
-            set {
+            set
+            {
                 _sourceDir = value;
             }
         }
 
         public string OutputDir
         {
-            get {
+            get
+            {
                 return _outputDir;
             }
-            set {
+            set
+            {
                 _outputDir = value;
             }
         }
 
         public bool ContinueOnError
         {
-            get {
+            get
+            {
                 return _continueOnError;
             }
-            set {
+            set
+            {
                 _continueOnError = value;
             }
         }
@@ -134,11 +143,13 @@ namespace SharpVectors.Converters
         /// </value>
         public bool Recursive
         {
-            get {
+            get
+            {
                 return _isRecursive;
             }
 
-            set {
+            set
+            {
                 _isRecursive = value;
             }
         }
@@ -152,11 +163,13 @@ namespace SharpVectors.Converters
         /// </value>
         public bool Overwrite
         {
-            get {
+            get
+            {
                 return _isOverwrite;
             }
 
-            set {
+            set
+            {
                 _isOverwrite = value;
             }
         }
@@ -172,11 +185,13 @@ namespace SharpVectors.Converters
         /// </value>
         public bool IncludeSecurity
         {
-            get {
+            get
+            {
                 return _includeSecurity;
             }
 
-            set {
+            set
+            {
                 _includeSecurity = value;
             }
         }
@@ -187,16 +202,18 @@ namespace SharpVectors.Converters
         /// </summary>
         /// <value>
         /// This property is <see langword="true"/> if hidden directories and files
-        /// are included in the copy operation; otherwise, it is 
+        /// are included in the copy operation; otherwise, it is
         /// <see langword="false"/>. The default is <see langword="false"/>.
         /// </value>
         public bool IncludeHidden
         {
-            get {
+            get
+            {
                 return _includeHidden;
             }
 
-            set {
+            set
+            {
                 _includeHidden = value;
             }
         }
@@ -211,7 +228,8 @@ namespace SharpVectors.Converters
         /// </value>
         public bool WriterErrorOccurred
         {
-            get {
+            get
+            {
                 return _writerErrorOccurred;
             }
         }
@@ -226,19 +244,21 @@ namespace SharpVectors.Converters
         /// the system XAML writer when an error occurred in using the custom
         /// writer; otherwise, it is <see langword="false"/>. If <see langword="false"/>,
         /// an exception, which occurred in using the custom writer will be
-        /// thrown. The default is <see langword="false"/>. 
+        /// thrown. The default is <see langword="false"/>.
         /// </value>
         public bool FallbackOnWriterError
         {
-            get {
+            get
+            {
                 return _fallbackOnWriterError;
             }
-            set {
+            set
+            {
                 _fallbackOnWriterError = value;
             }
         }
 
-        #endregion
+        #endregion Public Properties
 
         #region Public Methods
 
@@ -283,7 +303,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Public Methods
 
         #region Private Event Handlers
 
@@ -318,7 +338,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Page Methods
 
         #region BackgroundWorker Methods
 
@@ -431,9 +451,9 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion BackgroundWorker Methods
 
-        #endregion
+        #endregion Private Event Handlers
 
         #region Private Methods
 
@@ -519,19 +539,7 @@ namespace SharpVectors.Converters
                 }
 
                 DirectoryInfo targetInfo = null;
-#if NET
-                if (_includeSecurity)
-                {
-                    targetInfo = target.CreateSubdirectory(sourceInfo.Name,
-                        sourceInfo.GetAccessControl());
-                }
-                else
-                {
-                    targetInfo = target.CreateSubdirectory(sourceInfo.Name);
-                }
-#elif NETCORE
-                    targetInfo = target.CreateSubdirectory(sourceInfo.Name);
-#endif
+                targetInfo = target.CreateSubdirectory(sourceInfo.Name);
                 targetInfo.Attributes = fileAttr;
 
                 this.ProcessConversion(e, sourceInfo, targetInfo);
@@ -554,7 +562,7 @@ namespace SharpVectors.Converters
                 return;
             }
 
-            IEnumerable<string> fileIterator = DirectoryUtils.FindFiles(
+            IEnumerable<string> fileIterator = DirectoryHelper.FindFiles(
               source, "*.*", SearchOption.TopDirectoryOnly);
             foreach (string svgFileName in fileIterator)
             {
@@ -580,14 +588,6 @@ namespace SharpVectors.Converters
                         }
 
                         FileSecurity security = null;
-
-#if NET
-                        if (_includeSecurity)
-                        {
-                            security = File.GetAccessControl(svgFileName);
-                        }
-#endif
-
                         if (_worker.CancellationPending)
                         {
                             e.Cancel = true;
@@ -613,14 +613,6 @@ namespace SharpVectors.Converters
                                 File.Exists(xamlFile))
                             {
                                 File.SetAttributes(xamlFile, fileAttr);
-
-#if NET
-                                // if required to set the security or access control
-                                if (_includeSecurity)
-                                {
-                                    File.SetAccessControl(xamlFile, security);
-                                }
-#endif
                             }
                         }
                         if (_options.SaveZaml)
@@ -630,14 +622,6 @@ namespace SharpVectors.Converters
                                 File.Exists(zamlFile))
                             {
                                 File.SetAttributes(zamlFile, fileAttr);
-
-#if NET
-                                // if required to set the security or access control
-                                if (_includeSecurity)
-                                {
-                                    File.SetAccessControl(zamlFile, security);
-                                }
-#endif
                             }
                         }
 
@@ -650,14 +634,6 @@ namespace SharpVectors.Converters
                                 File.Exists(imageFile))
                             {
                                 File.SetAttributes(imageFile, fileAttr);
-
-#if NET
-                                // if required to set the security or access control
-                                if (_includeSecurity)
-                                {
-                                    File.SetAccessControl(imageFile, security);
-                                }
-#endif
                             }
                         }
 
@@ -695,7 +671,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Private Methods
 
         #region IObservable Members
 
@@ -712,7 +688,7 @@ namespace SharpVectors.Converters
                     // Wait for the BackgroundWorker to finish the download.
                     while (_worker.IsBusy)
                     {
-                        // Keep UI messages moving, so the form remains 
+                        // Keep UI messages moving, so the form remains
                         // responsive during the asynchronous operation.
                         MainApplication.DoEvents();
                     }
@@ -725,6 +701,6 @@ namespace SharpVectors.Converters
             _observer = observer;
         }
 
-        #endregion
+        #endregion IObservable Members
     }
 }

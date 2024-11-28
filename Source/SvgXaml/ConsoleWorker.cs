@@ -1,13 +1,10 @@
 ﻿using System;
 using System.ComponentModel;
-#if NET40
-using System.Runtime.Remoting.Messaging;
-#endif
 
 namespace SharpVectors.Converters
 {
     /// <summary>
-    /// ConsoleWorker is a helper class for running asynchronous tasks. 
+    /// ConsoleWorker is a helper class for running asynchronous tasks.
     /// </summary>
     public sealed class ConsoleWorker
     {
@@ -22,7 +19,7 @@ namespace SharpVectors.Converters
 
         private DoWorkEventHandler _eventHandler;
 
-        #endregion
+        #endregion Private Fields
 
         #region Constructors and Destructor
 
@@ -43,7 +40,7 @@ namespace SharpVectors.Converters
             _eventHandler = new DoWorkEventHandler(this.OnDoWork);
         }
 
-        #endregion
+        #endregion Constructors and Destructor
 
         #region Public Events
 
@@ -51,16 +48,18 @@ namespace SharpVectors.Converters
         /// Occurs when [do work].
         /// </summary>
         public event DoWorkEventHandler DoWork;
+
         /// <summary>
         /// Occurs when [run worker completed].
         /// </summary>
         public event RunWorkerCompletedEventHandler RunWorkerCompleted;
+
         /// <summary>
         /// Occurs when [progress changed].
         /// </summary>
         public event ProgressChangedEventHandler ProgressChanged;
 
-        #endregion
+        #endregion Public Events
 
         #region Public Properties
 
@@ -70,7 +69,8 @@ namespace SharpVectors.Converters
         /// <value><c>true</c> if this instance is busy; otherwise, <c>false</c>.</value>
         public bool IsBusy
         {
-            get {
+            get
+            {
                 lock (_countProtector)
                 {
                     if (_count >= _maxCount)
@@ -89,12 +89,13 @@ namespace SharpVectors.Converters
         /// <value><c>true</c> if [cancellation pending]; otherwise, <c>false</c>.</value>
         public bool CancellationPending
         {
-            get {
+            get
+            {
                 return _cancelationPending;
             }
         }
 
-        #endregion
+        #endregion Public Properties
 
         #region Public Methods
 
@@ -180,7 +181,7 @@ namespace SharpVectors.Converters
             this.OnProgressChanged(new ProgressChangedEventArgs(percentProgress, userState));
         }
 
-        #endregion
+        #endregion Public Methods
 
         #region Private Methods
 
@@ -223,12 +224,6 @@ namespace SharpVectors.Converters
 
             try
             {
-#if NET40
-                var doWorkDelegate = (DoWorkEventHandler)((AsyncResult)ar).AsyncDelegate;
-
-                doWorkDelegate.EndInvoke(ar);
-#endif
-
                 if (this.RunWorkerCompleted != null)
                 {
                     this.RunWorkerCompleted(this, new RunWorkerCompletedEventArgs(args.Result,
@@ -247,6 +242,6 @@ namespace SharpVectors.Converters
             _count--;
         }
 
-        #endregion
+        #endregion Private Methods
     }
 }

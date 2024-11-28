@@ -1,6 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net46;net48;netcoreapp3.1</TargetFrameworks>
+	<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <OutputType>WinExe</OutputType>
     <RootNamespace>SharpVectors.Converters</RootNamespace>
@@ -11,28 +11,21 @@
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
     <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
     <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <OutputPath>..\..\Output\</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DefineConstants>TRACE</DefineConstants>
     <OutputPath>..\..\Output\</OutputPath>
   </PropertyGroup>
-  <PropertyGroup>
-    <DefineConstants Condition=" '$(TargetFramework)' == 'net40' ">$(DefineConstants);DOTNET40;NETFULL</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('net45'))">$(DefineConstants);DOTNET45;NETFULL</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('net46'))">$(DefineConstants);DOTNET46;NETFULL</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('net47'))">$(DefineConstants);DOTNET47;NETFULL</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('net48'))">$(DefineConstants);DOTNET48;NETFULL</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('netcore'))">$(DefineConstants);NETCORE</DefineConstants>
-    <DefineConstants Condition="$(TargetFramework.StartsWith('netstandard'))">$(DefineConstants);NETSTANDARD</DefineConstants>
-  </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AvalonEdit" Version="6.0.1" />
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+    <PackageReference Include="SharpVectors.Wpf" Version="1.8.4.2" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ConverterHelp.xaml">
@@ -41,26 +34,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="SharpVectors.Reloaded" Version="1.6.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net46'">
-    <Reference Include="SharpVectors.ShellFileDialogs">
-      <HintPath>..\..\Libraries\net46\SharpVectors.ShellFileDialogs.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net48'">
-    <Reference Include="SharpVectors.ShellFileDialogs">
-      <HintPath>..\..\Libraries\net48\SharpVectors.ShellFileDialogs.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.1'">
-    <Reference Include="SharpVectors.ShellFileDialogs">
-      <HintPath>..\..\Libraries\netstandard2.1\SharpVectors.ShellFileDialogs.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\ShellFileDialogs\ShellFileDialogs.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="CircularProgressBar.xaml.cs">
