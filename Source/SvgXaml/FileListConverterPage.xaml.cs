@@ -14,10 +14,6 @@ using System.Windows.Threading;
 
 using Microsoft.Win32;
 
-//using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
-
-using FolderBrowserDialog = ShellFileDialogs.FolderBrowserDialog;
-
 namespace SharpVectors.Converters
 {
     /// <summary>
@@ -31,10 +27,12 @@ namespace SharpVectors.Converters
 
         private bool _isConverting;
         private bool _isConversionError;
+
         /// <summary>
         /// Only one observer is expected!
         /// </summary>
         private Brush _titleBkDefault;
+
         private IObserver _observer;
         private ConverterOptions _options;
 
@@ -46,7 +44,7 @@ namespace SharpVectors.Converters
 
         private Frame _parentFrame;
 
-        #endregion
+        #endregion Private Fields
 
         #region Constructors and Destructor
 
@@ -73,7 +71,7 @@ namespace SharpVectors.Converters
             _listItems.CollectionChanged += new NotifyCollectionChangedEventHandler(OnSourceUpdated);
         }
 
-        #endregion
+        #endregion Constructors and Destructor
 
         #region Public Properties
 
@@ -106,7 +104,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Public Properties
 
         #region Protected Methods
 
@@ -120,7 +118,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Protected Methods
 
         #region Private Event Handlers
 
@@ -193,7 +191,7 @@ namespace SharpVectors.Converters
         {
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.Multiselect = true;
-            dlg.Filter      = "SVG Files|*.svg;*.svgz"; ;
+            dlg.Filter = "SVG Files|*.svg;*.svgz"; ;
             dlg.FilterIndex = 1;
 
             bool? isSelected = dlg.ShowDialog();
@@ -276,10 +274,8 @@ namespace SharpVectors.Converters
             {
                 sourceDir = Path.GetDirectoryName(sourceFile);
             }
-
-            IntPtr windowHandle = new WindowInteropHelper(Application.Current.MainWindow).Handle;
-            string selectedDirectory = FolderBrowserDialog.ShowDialog(windowHandle,
-                "Select the output directory for the converted file", sourceDir);
+            string selectedDirectory =
+                DirectoryHelper.OpenFolderDialog(sourceDir, "Select the output directory for the converted file");
             if (!string.IsNullOrWhiteSpace(selectedDirectory))
             {
                 // this will remove the watermark...
@@ -319,8 +315,8 @@ namespace SharpVectors.Converters
                 return;
             }
 
-            _isConverting        = true;
-            _isConversionError   = false;
+            _isConverting = true;
+            _isConversionError = false;
             btnConvert.IsEnabled = false;
 
             if (_converterOutput == null)
@@ -335,7 +331,7 @@ namespace SharpVectors.Converters
                 _converterOutput.ContinueOnError = chkContinueOnError.IsChecked.Value;
             }
             _converterOutput.SourceFiles = _listItems.FileItems;
-            _converterOutput.OutputDir   = txtOutputDir.Text;
+            _converterOutput.OutputDir = txtOutputDir.Text;
 
             _parentFrame.Content = _converterOutput;
 
@@ -349,7 +345,7 @@ namespace SharpVectors.Converters
             _isConversionError = false;
         }
 
-        #endregion
+        #endregion Private Event Handlers
 
         #region Private Methods
 
@@ -456,7 +452,7 @@ namespace SharpVectors.Converters
             statusText.Text = text;
         }
 
-        #endregion
+        #endregion Private Methods
 
         #region IObservable Members
 
@@ -473,7 +469,7 @@ namespace SharpVectors.Converters
             _observer = observer;
         }
 
-        #endregion
+        #endregion IObservable Members
 
         #region IObserver Members
 
@@ -518,7 +514,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion IObserver Members
 
         #region FileList Class
 
@@ -528,7 +524,7 @@ namespace SharpVectors.Converters
 
             private List<string> _listItems;
 
-            #endregion
+            #endregion Private Fields
 
             #region Constructors and Destructor
 
@@ -538,7 +534,7 @@ namespace SharpVectors.Converters
                 _listItems = new List<string>();
             }
 
-            #endregion
+            #endregion Constructors and Destructor
 
             #region Public Properties
 
@@ -594,7 +590,7 @@ namespace SharpVectors.Converters
                 }
             }
 
-            #endregion
+            #endregion Public Properties
 
             #region Public Methods
 
@@ -610,7 +606,7 @@ namespace SharpVectors.Converters
                     return;
                 }
                 if (string.Equals(fileExt, ".svg", StringComparison.OrdinalIgnoreCase)
-                    ||string.Equals(fileExt, ".svgz", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(fileExt, ".svgz", StringComparison.OrdinalIgnoreCase))
                 {
                     ListBoxItem listItem = new ListBoxItem();
                     listItem.Content = filePath;
@@ -620,7 +616,7 @@ namespace SharpVectors.Converters
                 }
             }
 
-            #endregion
+            #endregion Public Methods
 
             #region Protected Methods
 
@@ -641,9 +637,9 @@ namespace SharpVectors.Converters
                 }
             }
 
-            #endregion
+            #endregion Protected Methods
         }
 
-        #endregion
+        #endregion FileList Class
     }
 }

@@ -11,10 +11,6 @@ using System.Windows.Threading;
 
 using Microsoft.Win32;
 
-//using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
-
-using FolderBrowserDialog = ShellFileDialogs.FolderBrowserDialog;
-
 namespace SharpVectors.Converters
 {
     /// <summary>
@@ -28,10 +24,12 @@ namespace SharpVectors.Converters
 
         private bool _isConverting;
         private bool _isConversionError;
+
         /// <summary>
         /// Only one observer is expected!
         /// </summary>
         private Brush _titleBkDefault;
+
         private IObserver _observer;
         private ConverterOptions _options;
 
@@ -41,7 +39,7 @@ namespace SharpVectors.Converters
 
         private Frame _parentFrame;
 
-        #endregion
+        #endregion Private Fields
 
         #region Constructors and Destructor
 
@@ -50,7 +48,7 @@ namespace SharpVectors.Converters
             InitializeComponent();
 
             // Reset the dimensions...
-            this.Width  = Double.NaN;
+            this.Width = Double.NaN;
             this.Height = Double.NaN;
 
             this.Loaded += OnPageLoaded;
@@ -62,7 +60,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Constructors and Destructor
 
         #region Public Properties
 
@@ -94,7 +92,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Public Properties
 
         #region Protected Methods
 
@@ -108,7 +106,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Protected Methods
 
         #region Private Event Handlers
 
@@ -152,7 +150,7 @@ namespace SharpVectors.Converters
             {
                 foreach (string filePath in ((DataObject)e.Data).GetFileDropList())
                 {
-                    txtSourceFile.Text = filePath; 
+                    txtSourceFile.Text = filePath;
                     break;  // only a single file conversion is supported...
                 }
             }
@@ -171,14 +169,14 @@ namespace SharpVectors.Converters
         {
             e.Handled = true;
             // this will remove the watermark...
-            txtSourceFile.Focus(); 
+            txtSourceFile.Focus();
         }
 
         private void OnSourceFileClick(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.Multiselect = false;
-            dlg.Filter      = "SVG Files|*.svg;*.svgz"; ;
+            dlg.Filter = "SVG Files|*.svg;*.svgz"; ;
             dlg.FilterIndex = 1;
 
             bool? isSelected = dlg.ShowDialog();
@@ -194,15 +192,13 @@ namespace SharpVectors.Converters
         private void OnOutputDirClick(object sender, RoutedEventArgs e)
         {
             string sourceFile = txtSourceFile.Text.Trim();
-            string sourceDir  = Environment.CurrentDirectory;
+            string sourceDir = Environment.CurrentDirectory;
             if (!string.IsNullOrWhiteSpace(sourceFile) && File.Exists(sourceFile))
             {
                 sourceDir = Path.GetDirectoryName(sourceFile);
             }
-
-            IntPtr windowHandle = new WindowInteropHelper(Application.Current.MainWindow).Handle;
-            string selectedDirectory = FolderBrowserDialog.ShowDialog(windowHandle,
-                "Select the output directory for the converted file", sourceDir);
+            string selectedDirectory =
+                DirectoryHelper.OpenFolderDialog(sourceDir, "Select the output directory for the converted file");
             if (!string.IsNullOrWhiteSpace(selectedDirectory))
             {
                 // this will remove the watermark...
@@ -253,7 +249,7 @@ namespace SharpVectors.Converters
             _converterOutput.Subscribe(this);
 
             _converterOutput.SourceFile = txtSourceFile.Text;
-            _converterOutput.OutputDir  = txtOutputDir.Text;
+            _converterOutput.OutputDir = txtOutputDir.Text;
 
             _parentFrame.Content = _converterOutput;
 
@@ -267,7 +263,7 @@ namespace SharpVectors.Converters
             _isConversionError = false;
         }
 
-        #endregion
+        #endregion Private Event Handlers
 
         #region Private Methods
 
@@ -275,7 +271,7 @@ namespace SharpVectors.Converters
         {
             if (_isConverting)
             {
-                this.UpdateStatus("Converting", 
+                this.UpdateStatus("Converting",
                     "The conversion process is currently running, please wait...", false);
                 return;
             }
@@ -285,7 +281,7 @@ namespace SharpVectors.Converters
             if (_options.IsValid)
             {
                 string sourceFile = txtSourceFile.Text.Trim();
-                string outputDir  = txtOutputDir.Text.Trim();
+                string outputDir = txtOutputDir.Text.Trim();
                 bool isReadOnlyOutputDir = false;
                 if (!string.IsNullOrWhiteSpace(outputDir))
                 {
@@ -303,7 +299,7 @@ namespace SharpVectors.Converters
                         }
                     }
                     catch
-                    {                        	
+                    {
                     }
                 }
                 if (string.IsNullOrWhiteSpace(sourceFile))
@@ -319,7 +315,7 @@ namespace SharpVectors.Converters
                         !string.Equals(fileExt, ".svgz", StringComparison.OrdinalIgnoreCase)))
                     {
                         this.UpdateStatus("Error: Source File",
-                            "The specified file is not a valid SVG file or the file extension is invalid.", 
+                            "The specified file is not a valid SVG file or the file extension is invalid.",
                             true);
                     }
                     else if (isReadOnlyOutputDir)
@@ -375,7 +371,7 @@ namespace SharpVectors.Converters
                         }
                         else if (isReadOnlyOutputDir)
                         {
-                            this.UpdateStatus("Error: Output Directory", 
+                            this.UpdateStatus("Error: Output Directory",
                                 "The output directory is either invalid or read-only. Please select a different output directory.", true);
                         }
                         else
@@ -391,7 +387,7 @@ namespace SharpVectors.Converters
                         this.UpdateStatus("Error: Source File",
                             "The specified source file is either invalid or the file does not exists.",
                             true);
-                    }   
+                    }
                 }
             }
             else
@@ -413,27 +409,27 @@ namespace SharpVectors.Converters
             statusTitle.Foreground = isError ? Brushes.White : Brushes.Black;
 
             statusTitle.Text = title;
-            statusText.Text  = text;
+            statusText.Text = text;
         }
 
-        #endregion
+        #endregion Private Methods
 
         #region IObservable Members
 
         public void Cancel()
-        {   
+        {
             if (_converterOutput != null)
             {
                 _converterOutput.Cancel();
-            }                             
-        }   
+            }
+        }
 
         public void Subscribe(IObserver observer)
         {
             _observer = observer;
         }
 
-        #endregion
+        #endregion IObservable Members
 
         #region IObserver Members
 
@@ -468,16 +464,16 @@ namespace SharpVectors.Converters
 
             if (isSuccessful)
             {
-                this.UpdateStatus("Conversion: Successful", 
+                this.UpdateStatus("Conversion: Successful",
                     "The conversion of the specified file is completed successfully.", false);
             }
             else
             {
-                this.UpdateStatus("Conversion: Failed", 
+                this.UpdateStatus("Conversion: Failed",
                     "The conversion of the specified file failed, see the output for further information.", true);
             }
         }
 
-        #endregion
+        #endregion IObserver Members
     }
 }

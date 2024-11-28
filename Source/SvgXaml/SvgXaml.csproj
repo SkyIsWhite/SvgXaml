@@ -34,9 +34,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ShellFileDialogs\ShellFileDialogs.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Update="CircularProgressBar.xaml.cs">
       <DependentUpon>CircularProgressBar.xaml</DependentUpon>
     </Compile>

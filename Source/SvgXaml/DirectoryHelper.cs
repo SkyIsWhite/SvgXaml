@@ -11,6 +11,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.ComTypes;
+using Microsoft.Win32;
 
 namespace SharpVectors.Converters
 {
@@ -56,6 +57,21 @@ namespace SharpVectors.Converters
                 }
                 dir.Delete(recursive);
             }
+        }
+
+        public static string OpenFolderDialog(string sourceDir, string title)
+        {
+            string selectedDirectory = string.Empty;
+            OpenFolderDialog dialog = new();
+            dialog.Title = title;
+            dialog.Multiselect = false;
+            dialog.InitialDirectory = sourceDir;
+            bool? result = dialog.ShowDialog();
+            if (result == true)
+            {
+                selectedDirectory = dialog.FolderName;
+            }
+            return selectedDirectory;
         }
 
         public static IEnumerable<string> FindFiles(

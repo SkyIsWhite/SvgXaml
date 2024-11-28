@@ -9,10 +9,6 @@ using System.Windows.Interop;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
-//using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
-
-using FolderBrowserDialog = ShellFileDialogs.FolderBrowserDialog;
-
 namespace SharpVectors.Converters
 {
     /// <summary>
@@ -26,10 +22,12 @@ namespace SharpVectors.Converters
 
         private bool _isConverting;
         private bool _isConversionError;
+
         /// <summary>
         /// Only one observer is expected!
         /// </summary>
         private Brush _titleBkDefault;
+
         private IObserver _observer;
         private ConverterOptions _options;
 
@@ -39,7 +37,7 @@ namespace SharpVectors.Converters
 
         private Frame _parentFrame;
 
-        #endregion
+        #endregion Private Fields
 
         #region Constructors and Destructor
 
@@ -48,10 +46,10 @@ namespace SharpVectors.Converters
             InitializeComponent();
 
             // Reset the dimensions...
-            this.Width  = Double.NaN;
+            this.Width = Double.NaN;
             this.Height = Double.NaN;
 
-            if (_titleBkDefault == null && 
+            if (_titleBkDefault == null &&
                 (statusTitle != null && statusTitle.IsInitialized))
             {
                 _titleBkDefault = statusTitle.Background;
@@ -60,7 +58,7 @@ namespace SharpVectors.Converters
             this.Loaded += new RoutedEventHandler(OnPageLoaded);
         }
 
-        #endregion
+        #endregion Constructors and Destructor
 
         #region Public Properties
 
@@ -93,7 +91,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Public Properties
 
         #region Protected Methods
 
@@ -107,7 +105,7 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion Protected Methods
 
         #region Private Event Handlers
 
@@ -155,9 +153,8 @@ namespace SharpVectors.Converters
                 sourceDir = Environment.CurrentDirectory;
             }
 
-            IntPtr windowHandle = new WindowInteropHelper(Application.Current.MainWindow).Handle;
-            string selectedDirectory = FolderBrowserDialog.ShowDialog(windowHandle,
-                "Select the source directory of the SVG files", sourceDir);
+            string selectedDirectory =
+                DirectoryHelper.OpenFolderDialog(sourceDir, "Select the source directory of the SVG files");
             if (!string.IsNullOrWhiteSpace(selectedDirectory))
             {
                 // this will remove the watermark...
@@ -196,10 +193,8 @@ namespace SharpVectors.Converters
             {
                 sourceDir = Environment.CurrentDirectory;
             }
-
-            IntPtr windowHandle = new WindowInteropHelper(Application.Current.MainWindow).Handle;
-            string selectedDirectory = FolderBrowserDialog.ShowDialog(windowHandle,
-                "Select the output directory for the converted file", sourceDir);
+            string selectedDirectory =
+                DirectoryHelper.OpenFolderDialog(sourceDir, "Select the output directory for the converted file");
             if (!string.IsNullOrWhiteSpace(selectedDirectory))
             {
                 // this will remove the watermark...
@@ -238,8 +233,8 @@ namespace SharpVectors.Converters
             {
                 return;
             }
-            _isConverting        = true;
-            _isConversionError   = false;
+            _isConverting = true;
+            _isConversionError = false;
             btnConvert.IsEnabled = false;
 
             if (_converterOutput == null)
@@ -272,7 +267,7 @@ namespace SharpVectors.Converters
             _isConversionError = false;
         }
 
-        #endregion
+        #endregion Private Event Handlers
 
         #region Private Methods
 
@@ -385,7 +380,7 @@ namespace SharpVectors.Converters
             statusText.Text = text;
         }
 
-        #endregion
+        #endregion Private Methods
 
         #region IObservable Members
 
@@ -402,7 +397,7 @@ namespace SharpVectors.Converters
             _observer = observer;
         }
 
-        #endregion
+        #endregion IObservable Members
 
         #region IObserver Members
 
@@ -447,6 +442,6 @@ namespace SharpVectors.Converters
             }
         }
 
-        #endregion
+        #endregion IObserver Members
     }
 }
