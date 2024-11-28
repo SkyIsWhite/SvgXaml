@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SvgXaml", "SvgXaml\SvgXaml.csproj", "{0B1FD1AD-6004-40CC-94A1-B598F6B00A1A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SvgToXaml", "SvgToXaml\SvgToXaml.csproj", "{0CAF3717-683D-45D3-94A1-CFA4828EF67B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{0B1FD1AD-6004-40CC-94A1-B598F6B00A1A}.Debug|x64.Build.0 = Debug|x64
 		{0B1FD1AD-6004-40CC-94A1-B598F6B00A1A}.Release|x64.ActiveCfg = Release|x64
 		{0B1FD1AD-6004-40CC-94A1-B598F6B00A1A}.Release|x64.Build.0 = Release|x64
+		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Debug|x64.Build.0 = Debug|Any CPU
+		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Release|x64.ActiveCfg = Release|Any CPU
+		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
