@@ -4,9 +4,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using SharpVectors.Renderers.Wpf;
 
 namespace SharpVectors.Converters;
@@ -17,6 +19,8 @@ namespace SharpVectors.Converters;
 public partial class FileListConverterOutput : Page, IObservable
 {
     #region Constructors and Destructor
+
+    private DetailWindow _detailWindow;
 
     public FileListConverterOutput()
     {
@@ -40,7 +44,7 @@ public partial class FileListConverterOutput : Page, IObservable
         ContinueOnError = true;
     }
 
-    #endregion
+    #endregion Constructors and Destructor
 
     #region Public Methods
 
@@ -84,7 +88,7 @@ public partial class FileListConverterOutput : Page, IObservable
         }
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Fields
 
@@ -104,7 +108,7 @@ public partial class FileListConverterOutput : Page, IObservable
 
     private readonly BackgroundWorker _worker;
 
-    #endregion
+    #endregion Private Fields
 
     #region Public Properties
 
@@ -140,7 +144,7 @@ public partial class FileListConverterOutput : Page, IObservable
     /// </value>
     public bool FallbackOnWriterError { get; set; }
 
-    #endregion
+    #endregion Public Properties
 
     #region Private Event Handlers
 
@@ -175,7 +179,7 @@ public partial class FileListConverterOutput : Page, IObservable
         }
     }
 
-    #endregion
+    #endregion Page Methods
 
     #region BackgroundWorker Methods
 
@@ -264,9 +268,9 @@ public partial class FileListConverterOutput : Page, IObservable
         if (!e.Cancel) e.Result = "Successful";
     }
 
-    #endregion
+    #endregion BackgroundWorker Methods
 
-    #endregion
+    #endregion Private Event Handlers
 
     #region Private Methods
 
@@ -297,7 +301,14 @@ public partial class FileListConverterOutput : Page, IObservable
         }
 
         var outputDir = target;
-
+        Dispatcher.Invoke(() =>
+        {
+            _detailWindow = new DetailWindow();
+            _detailWindow.Owner = Application.Current.MainWindow;
+            _detailWindow.Show();
+        });
+        int total = SourceFiles.Count;
+        _convertedCount = 0;
         foreach (var svgFileName in SourceFiles)
         {
             if (_worker.CancellationPending)
@@ -333,7 +344,18 @@ public partial class FileListConverterOutput : Page, IObservable
                         _fileReader.SaveImage(svgFileName, target,
                             Options.EncoderType);
 
-                    if (drawing != null) _convertedCount++;
+                    if (drawing != null)
+                    {
+                        _convertedCount++;
+                        Dispatcher.Invoke(() =>
+                        {
+                            _detailWindow.SetSource(_convertedCount, total, svgFileName);
+                        });
+                        while (!_detailWindow.AllowContinue)
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
 
                     if (_fileReader.WriterErrorOccurred) WriterErrorOccurred = true;
                 }
@@ -358,9 +380,14 @@ public partial class FileListConverterOutput : Page, IObservable
                     }
                 }
         }
+
+        Dispatcher.Invoke(() =>
+        {
+            _detailWindow.Close();
+        });
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IObservable Members
 
@@ -375,7 +402,7 @@ public partial class FileListConverterOutput : Page, IObservable
 
                 // Wait for the BackgroundWorker to finish the download.
                 while (_worker.IsBusy)
-                    // Keep UI messages moving, so the form remains 
+                    // Keep UI messages moving, so the form remains
                     // responsive during the asynchronous operation.
                     MainApplication.DoEvents();
             }
@@ -386,5 +413,5 @@ public partial class FileListConverterOutput : Page, IObservable
         _observer = observer;
     }
 
-    #endregion
+    #endregion IObservable Members
 }
