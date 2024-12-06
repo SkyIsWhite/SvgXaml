@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Xml;
 
 using Microsoft.VisualStudio.Shell;
@@ -79,7 +80,7 @@ namespace DrawingGroupViewer.Adornments
         /// If <see cref="ScalingMode"/> is ScaleUp, that's the minimal side length.
         /// If <see cref="ScalingMode"/> is ScaleDown, that's the maximal side length.
         /// </summary>
-        public int PreviewSideLength { get; set; } = 250;
+        public int PreviewSideLength { get; set; } = 256;
 
         /// <summary>
         /// Scale the image up or down?
@@ -104,16 +105,14 @@ namespace DrawingGroupViewer.Adornments
                 {
                     return;
                 }
-
-                Size size = CalculateDimensions(new Size(drawingGroup.Bounds.Width, drawingGroup.Bounds.Height));
-
-                var bitmap = ConvertToBitmapImage(drawingGroup, size);
-
+                var bitmap = ConvertToBitmapImage(drawingGroup, PreviewSideLength);
+                int width = bitmap.PixelWidth;
+                int height = bitmap.PixelHeight;
                 bitmap.Freeze();
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-                ToolTip = $"Width: {size.Width}\nHeight: {size.Height}";
+                ToolTip = $"Width: {width}\nHeight: {height}";
                 Source = bitmap;
                 UpdateAdornmentLocation(bitmap.Width, bitmap.Height);
             }
@@ -123,36 +122,71 @@ namespace DrawingGroupViewer.Adornments
             }
         }
 
-        /// <summary>
-        /// 将 DrawingGroup 转换为 BitmapImage
-        /// </summary>
-        private BitmapImage ConvertToBitmapImage(DrawingGroup drawingGroup, Size size)
+        private BitmapImage ConvertToBitmapImage(DrawingGroup drawingGroup, double targetSize)
         {
-            // 渲染到 RenderTargetBitmap
-            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
-                (int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
-
             // 获取 DrawingGroup 的实际大小
             Rect bounds = drawingGroup.Bounds;
+
+            // 如果 DrawingGroup 为空或尺寸为 0，则直接返回一个空的 BitmapImage
+            if (bounds.Width == 0 || bounds.Height == 0)
+            {
+                return new BitmapImage();
+            }
+
             double originalWidth = bounds.Width;
             double originalHeight = bounds.Height;
 
-            // 计算缩放比例
-            double scaleX = size.Width / originalWidth;
-            double scaleY = size.Height / originalHeight;
+            // 计算缩放比例，保持宽高比
+            double scale;
+
+            // 判断是宽度还是高度作为目标尺寸
+            if (originalWidth > originalHeight)
+            {
+                // 使用宽度为基准，计算缩放比例
+                scale = targetSize / originalWidth;
+            }
+            else
+            {
+                // 使用高度为基准，计算缩放比例
+                scale = targetSize / originalHeight;
+            }
+
+            // 计算目标宽高，保持原始比例
+            double targetWidth = originalWidth * scale;
+            double targetHeight = originalHeight * scale;
 
             // 使用 ScaleTransform 缩放 DrawingGroup
-            ScaleTransform scaleTransform = new ScaleTransform(scaleX, scaleY);
+            ScaleTransform scaleTransform = new ScaleTransform(scale, scale);
 
             // 使用 DrawingVisual 渲染 DrawingGroup
+            DrawingGroup scaledDrawingGroup = new DrawingGroup();
+            using (DrawingContext dc = scaledDrawingGroup.Open())
+            {
+                dc.PushTransform(scaleTransform);
+                dc.DrawDrawing(drawingGroup);
+                dc.Pop();
+            }
+
+            // 计算渲染后的尺寸，以确保 RenderTargetBitmap 足够大
+            int renderWidth = (int)targetWidth;
+            int renderHeight = (int)targetHeight;
+
+            // 创建一个 RenderTargetBitmap 来渲染背景和内容
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
+                renderWidth, renderHeight, 96, 96, PixelFormats.Pbgra32);
+
+            // 创建一个 DrawingVisual 来绘制背景和 DrawingGroup 内容
             DrawingVisual drawingVisual = new DrawingVisual();
             using (DrawingContext drawingContext = drawingVisual.RenderOpen())
             {
-                drawingContext.PushTransform(scaleTransform);
-                drawingContext.DrawDrawing(drawingGroup);
-                drawingContext.Pop();
+                // 绘制格子背景
+                DrawGridBackground(drawingContext, renderWidth, renderHeight);
+
+                // 绘制 DrawingGroup 内容
+                drawingContext.DrawDrawing(scaledDrawingGroup);
             }
 
+            // 渲染到 RenderTargetBitmap
             renderBitmap.Render(drawingVisual);
 
             // 将 RenderTargetBitmap 转换为 BitmapImage
@@ -176,6 +210,25 @@ namespace DrawingGroupViewer.Adornments
             return bitmapImage;
         }
 
+        private void DrawGridBackground(DrawingContext drawingContext, int width, int height)
+        {
+            // 设置格子的颜色和大小
+            Brush lightGray = new SolidColorBrush(Color.FromArgb(128, 200, 200, 200)); // 浅灰色
+            Brush darkGreen = new SolidColorBrush(Color.FromArgb(128, 0, 128, 0)); // 深绿色
+
+            double cellSize = 20; // 格子的大小
+
+            // 绘制格子背景
+            for (double y = 0; y < height; y += cellSize)
+            {
+                for (double x = 0; x < width; x += cellSize)
+                {
+                    Brush brush = (int)((x + y) / cellSize) % 2 == 0 ? lightGray : darkGreen;
+                    drawingContext.DrawRectangle(brush, null, new Rect(x, y, cellSize, cellSize));
+                }
+            }
+        }
+
         private bool TryGetBufferAsXmlDocument(out XmlDocument document)
         {
             document = new XmlDocument();
@@ -191,24 +244,6 @@ namespace DrawingGroupViewer.Adornments
             {
                 return false;
             }
-        }
-
-        private Size CalculateDimensions(Size currentSize)
-        {
-            var sourceWidth = currentSize.Width;
-            var sourceHeight = currentSize.Height;
-
-            var widthPercent = PreviewSideLength / sourceWidth;
-            var heightPercent = PreviewSideLength / sourceHeight;
-
-            var percent = ScalingMode == ScalingMode.ScaleUp ?
-                Math.Max(heightPercent, widthPercent) :
-                Math.Min(heightPercent, widthPercent);
-
-            var destWidth = (int)(sourceWidth * percent);
-            var destHeight = (int)(sourceHeight * percent);
-
-            return new Size(destWidth, destHeight);
         }
 
         private void SetAdornmentLocation(object sender, EventArgs e)
