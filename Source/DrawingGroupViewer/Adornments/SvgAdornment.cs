@@ -132,11 +132,25 @@ namespace DrawingGroupViewer.Adornments
             RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
                 (int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
 
+            // 获取 DrawingGroup 的实际大小
+            Rect bounds = drawingGroup.Bounds;
+            double originalWidth = bounds.Width;
+            double originalHeight = bounds.Height;
+
+            // 计算缩放比例
+            double scaleX = size.Width / originalWidth;
+            double scaleY = size.Height / originalHeight;
+
+            // 使用 ScaleTransform 缩放 DrawingGroup
+            ScaleTransform scaleTransform = new ScaleTransform(scaleX, scaleY);
+
             // 使用 DrawingVisual 渲染 DrawingGroup
             DrawingVisual drawingVisual = new DrawingVisual();
             using (DrawingContext drawingContext = drawingVisual.RenderOpen())
             {
+                drawingContext.PushTransform(scaleTransform);
                 drawingContext.DrawDrawing(drawingGroup);
+                drawingContext.Pop();
             }
 
             renderBitmap.Render(drawingVisual);
