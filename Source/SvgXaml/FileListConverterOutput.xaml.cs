@@ -340,9 +340,9 @@ public partial class FileListConverterOutput : Page, IObservable
                             throw new InvalidOperationException(
                                 "The conversion failed due to unknown error.");
 
-                    if (drawing != null && Options.GenerateImage)
-                        _fileReader.SaveImage(svgFileName, target,
-                            Options.EncoderType);
+                    //if (drawing != null && Options.GenerateImage)
+                    //    _fileReader.SaveImage(svgFileName, target,
+                    //        Options.EncoderType);
 
                     if (drawing != null)
                     {

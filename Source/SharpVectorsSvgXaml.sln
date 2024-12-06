@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SvgXaml", "SvgXaml\SvgXaml.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SvgToXaml", "SvgToXaml\SvgToXaml.csproj", "{0CAF3717-683D-45D3-94A1-CFA4828EF67B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DrawingGroupViewer", "DrawingGroupViewer\DrawingGroupViewer.csproj", "{DB3A5EE1-33CD-411A-AB83-FC72F09A06FD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Debug|x64.Build.0 = Debug|x64
 		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Release|x64.ActiveCfg = Release|x64
 		{0CAF3717-683D-45D3-94A1-CFA4828EF67B}.Release|x64.Build.0 = Release|x64
+		{DB3A5EE1-33CD-411A-AB83-FC72F09A06FD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB3A5EE1-33CD-411A-AB83-FC72F09A06FD}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB3A5EE1-33CD-411A-AB83-FC72F09A06FD}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB3A5EE1-33CD-411A-AB83-FC72F09A06FD}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
