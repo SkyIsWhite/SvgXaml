@@ -104,7 +104,7 @@
             Grid.Column="0"
             Grid.ColumnSpan="2"
             Click="OnBtnContinueClick"
-            Content="BtnContinue"
+            Content="Continue"
             FontSize="24"
             FontWeight="Bold" />
     </Grid>

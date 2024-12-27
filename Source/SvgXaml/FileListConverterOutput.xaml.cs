@@ -362,6 +362,11 @@ public partial class FileListConverterOutput : Page, IObservable
                 catch (Exception ex)
                 {
                     _errorFiles.Add(svgFileName);
+                    string xamlFilePath = svgFileName.Replace(".svg", ".xaml");
+                    if (File.Exists(xamlFilePath))
+                    {
+                        File.Delete(xamlFilePath);
+                    }
 
                     if (ContinueOnError)
                     {
